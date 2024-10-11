@@ -1,8 +1,11 @@
 package crypto
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func GetHash(key string) string {
@@ -10,4 +13,28 @@ func GetHash(key string) string {
 	hash.Write([]byte(key))
 	hashBytes := hash.Sum(nil)
 	return hex.EncodeToString(hashBytes)
+}
+
+func RandomSalt(n int) (string, error) {
+	bytes := make([]byte, n)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
+func HashPasswordWithSalt(password string, salt string) (string, error) {
+	passwordWithSalt := password + salt
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(passwordWithSalt), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedPassword), nil
+}
+
+func CheckPasswordWithSalt(password, salt, hashedPassword string) bool {
+	passwordWithSalt := password + salt
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(passwordWithSalt))
+	return err == nil
 }

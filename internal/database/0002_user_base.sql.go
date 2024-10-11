@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 )
 
 const checkUserBaseExists = `-- name: CheckUserBaseExists :one
@@ -20,4 +21,65 @@ func (q *Queries) CheckUserBaseExists(ctx context.Context, userAccount string) (
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const getUserBase = `-- name: GetUserBase :one
+SELECT user_id, user_account, user_password, user_salt
+FROM ` + "`" + `user_base` + "`" + `
+WHERE user_account = ?
+`
+
+type GetUserBaseRow struct {
+	UserID       int32
+	UserAccount  string
+	UserPassword string
+	UserSalt     string
+}
+
+func (q *Queries) GetUserBase(ctx context.Context, userAccount string) (GetUserBaseRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserBase, userAccount)
+	var i GetUserBaseRow
+	err := row.Scan(
+		&i.UserID,
+		&i.UserAccount,
+		&i.UserPassword,
+		&i.UserSalt,
+	)
+	return i, err
+}
+
+const insertUserBase = `-- name: InsertUserBase :execresult
+INSERT INTO ` + "`" + `user_base` + "`" + ` (
+    user_account,
+    user_password,
+    user_salt,
+    user_created_at,
+    user_updated_at
+) VALUES (?, ?, ?, NOW(), NOW())
+`
+
+type InsertUserBaseParams struct {
+	UserAccount  string
+	UserPassword string
+	UserSalt     string
+}
+
+func (q *Queries) InsertUserBase(ctx context.Context, arg InsertUserBaseParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, insertUserBase, arg.UserAccount, arg.UserPassword, arg.UserSalt)
+}
+
+const updateInfoLogin = `-- name: UpdateInfoLogin :exec
+UPDATE ` + "`" + `user_base` + "`" + `
+SET user_login_time = NOW(), user_login_ip = ?
+WHERE user_id = ?
+`
+
+type UpdateInfoLoginParams struct {
+	UserLoginIp sql.NullString
+	UserID      int32
+}
+
+func (q *Queries) UpdateInfoLogin(ctx context.Context, arg UpdateInfoLoginParams) error {
+	_, err := q.db.ExecContext(ctx, updateInfoLogin, arg.UserLoginIp, arg.UserID)
+	return err
 }

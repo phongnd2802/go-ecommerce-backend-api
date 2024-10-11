@@ -108,9 +108,41 @@ func (ua *userAuthImpl) Register(in *model.RegisterRequest) (messageCode int, er
 	return response.CodeSuccess, nil
 }
 
-func (ua *userAuthImpl) Login() (messageCode int, err error) {
-	return response.CodeSuccess, nil
+
+func (ua *userAuthImpl) Login(in *model.LoginRequest) (messageCode int, out model.LoginResponse, err error) {
+	// Check Email
+	userFound, err := ua.repo.GetUserBase(context.Background(), in.Email)
+	if err != nil {
+		return response.ErrCodeEmailNotVerifiedOrNotRegistered, out, err
+	}
+
+	// Check Password
+	matched := crypto.CheckPasswordWithSalt(in.Password, userFound.UserSalt, userFound.UserPassword)
+	if !matched {
+		return response.ErrCodePasswordDoNotMatch, out, err
+	}
+
+	// Generate AccessToken, RefreshToken
+
+
+
+
+	// Save info Login to MySQL
+	err = ua.repo.UpdateInfoLogin(context.Background(), database.UpdateInfoLoginParams{
+		UserID: userFound.UserID,
+		UserLoginIp: sql.NullString{String: "0.0.0.0", Valid: true},
+	})
+	if err != nil {
+		return response.ErrCodeInternalServerError, out, err
+	}
+
+	// Response
+	out.UserId = int(userFound.UserID)
+	out.AccessToken = ""
+	out.RefreshToken = ""
+	return response.CodeSuccess, out, nil
 }
+
 
 func (ua *userAuthImpl) VerifyOTP(in *model.VerifyRequest) (messageCode int, out model.VerifyOTPResponse, err error) {
 	hashKey := crypto.GetHash(in.VerifyKey)
@@ -138,12 +170,46 @@ func (ua *userAuthImpl) VerifyOTP(in *model.VerifyRequest) (messageCode int, out
 
 	// Response
 	out.Token = infoOtp.VerifyKeyHash
-	out.UserId = strconv.Itoa(int(infoOtp.VerifyID))
+	out.UserId = int(infoOtp.VerifyID)
 	
 	return response.CodeSuccess, out, nil
 }
 
-func (ua *userAuthImpl) UpdatePasswordVerified() (messageCode int,err error) {
+func (ua *userAuthImpl) UpdatePasswordVerified(in *model.SetPasswordRequest) (messageCode int, err error) {
+	// Check Verified
+	infoVerify, err := ua.repo.GetValidVerified(context.Background(), in.VerifyKeyHash)
+	if err != nil {
+		return response.ErrCodeEmailNotVerified, err
+	}
+
+	// Random Salt
+	ranSalt, err := crypto.RandomSalt(16)
+	if err != nil {
+		return response.ErrCodeInternalServerError, err
+	}
+
+	// Hash Password
+	hashedPassword, err := crypto.HashPasswordWithSalt(in.Password, ranSalt)
+	if err != nil {
+		return response.ErrCodeInternalServerError, err
+	}
+
+	// Insert Info Account To MySQL
+	result, err := ua.repo.InsertUserBase(context.Background(), database.InsertUserBaseParams{
+		UserAccount: infoVerify.VerifyKey,
+		UserPassword: hashedPassword,
+		UserSalt: ranSalt,
+	})
+	if err != nil {
+		return response.ErrCodeInternalServerError, err
+	}
+	lastIdUser, err := result.LastInsertId()
+	if err != nil {
+		return response.ErrCodeInternalServerError, err
+	}
+
+	log.Println("LastIdUserBase:>>", lastIdUser)
+
 	return response.CodeSuccess, nil
 }
 

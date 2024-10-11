@@ -3,6 +3,7 @@ package global
 import (
 	"database/sql"
 
+	"github.com/minio/minio-go/v7"
 	"github.com/phongnd2802/go-ecommerce-backend-api/pkg/logger"
 	"github.com/phongnd2802/go-ecommerce-backend-api/pkg/setting"
 	"github.com/redis/go-redis/v9"
@@ -15,4 +16,5 @@ var (
 	Mdb           *sql.DB
 	Rdb           *redis.Client
 	KafkaProducer *kafka.Writer
+	MinioClient   *minio.Client
 )

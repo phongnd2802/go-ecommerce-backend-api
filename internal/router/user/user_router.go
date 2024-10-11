@@ -12,14 +12,13 @@ type UserRouter struct {}
 
 func (ur *UserRouter) InitUserRouter(Router *mux.Router) {
 	userPublicRouter := Router.PathPrefix("/user").Subrouter()
-	// userPublicRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-	// 	response.WriteJSON(w, http.StatusOK, map[string]interface{}{
-	// 		"message": "user",
-	// 	})
-	// })
+	////////////////////////////////////////////////////////////////////////////////
 	userPublicRouter.HandleFunc("/register", account.Auth.Register).Methods("POST") 
 	userPublicRouter.HandleFunc("/otp", account.Auth.VerifyOTP).Methods("POST")
-	
+	userPublicRouter.HandleFunc("/set_password", account.Auth.UpdatePasswordVerified).Methods("POST")
+	userPublicRouter.HandleFunc("/login", account.Auth.Login).Methods("POST")
+
+	////////////////////////////////////////////////////////////////////////////////
 	userPrivateRouter := Router.PathPrefix("/user").Subrouter()
 	//userPrivateRouter.Use()
 	userPrivateRouter.HandleFunc("/get_info", func(w http.ResponseWriter, r *http.Request) {

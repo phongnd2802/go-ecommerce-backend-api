@@ -66,6 +66,37 @@ func (q *Queries) GetValidOTP(ctx context.Context, verifyKeyHash string) (GetVal
 	return i, err
 }
 
+const getValidVerified = `-- name: GetValidVerified :one
+SELECT verify_id, verify_otp, verify_key, verify_key_hash, verify_type, is_verified, is_deleted
+FROM ` + "`" + `user_verify` + "`" + `
+WHERE verify_key_hash = ? AND is_verified = 1
+`
+
+type GetValidVerifiedRow struct {
+	VerifyID      int32
+	VerifyOtp     string
+	VerifyKey     string
+	VerifyKeyHash string
+	VerifyType    sql.NullInt32
+	IsVerified    sql.NullInt32
+	IsDeleted     sql.NullInt32
+}
+
+func (q *Queries) GetValidVerified(ctx context.Context, verifyKeyHash string) (GetValidVerifiedRow, error) {
+	row := q.db.QueryRowContext(ctx, getValidVerified, verifyKeyHash)
+	var i GetValidVerifiedRow
+	err := row.Scan(
+		&i.VerifyID,
+		&i.VerifyOtp,
+		&i.VerifyKey,
+		&i.VerifyKeyHash,
+		&i.VerifyType,
+		&i.IsVerified,
+		&i.IsDeleted,
+	)
+	return i, err
+}
+
 const insertOTPVerify = `-- name: InsertOTPVerify :execresult
 INSERT INTO ` + "`" + `user_verify` + "`" + ` (
     verify_otp,

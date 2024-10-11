@@ -12,7 +12,7 @@ const docTemplate = `{
         "termsOfService": "github.com/phongnd2802/go-ecommerce-backend-api",
         "contact": {
             "name": "PhongND",
-            "url": "github.com/phongnd2802/go-ecommerce-backend-api",
+            "url": "https://github.com/phongnd2802/go-ecommerce-backend-api",
             "email": "duyphong02802@gmail.com"
         },
         "license": {
@@ -40,6 +40,52 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK"
+                    }
+                }
+            }
+        },
+        "/user/login": {
+            "post": {
+                "description": "User Login",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Account Management"
+                ],
+                "summary": "User Login",
+                "parameters": [
+                    {
+                        "description": "payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseData"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseData"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseData"
+                        }
                     }
                 }
             }
@@ -135,9 +181,70 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/user/set_password": {
+            "post": {
+                "description": "Set Password when user verified",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Account Management"
+                ],
+                "summary": "User Set Password Verified",
+                "parameters": [
+                    {
+                        "description": "payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseData"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseData"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseData"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "model.LoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
         "model.RegisterRequest": {
             "type": "object",
             "required": [
@@ -149,6 +256,21 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "verify_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "password",
+                "verify_key_hash"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "verify_key_hash": {
                     "type": "string"
                 }
             }

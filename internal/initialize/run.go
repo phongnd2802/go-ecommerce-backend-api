@@ -31,6 +31,8 @@ func Run() *mux.Router {
 	// Init Kafka
 	InitKafka()
 
+	// Init MinIO
+	InitMinIO()
 
 	// Init Router
 	r := InitRouter()

@@ -27,3 +27,8 @@ WHERE verify_key_hash = ?;
 UPDATE `user_verify`
 SET is_verified = 1, verify_updated_at = NOW()
 WHERE verify_key_hash = ?;
+
+-- name: GetValidVerified :one
+SELECT verify_id, verify_otp, verify_key, verify_key_hash, verify_type, is_verified, is_deleted
+FROM `user_verify`
+WHERE verify_key_hash = ? AND is_verified = 1;
