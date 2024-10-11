@@ -1,0 +1,118 @@
+basePath: /api/v1
+definitions:
+  model.RegisterRequest:
+    properties:
+      verify_key:
+        type: string
+      verify_type:
+        type: string
+    required:
+    - verify_key
+    - verify_type
+    type: object
+  model.VerifyRequest:
+    properties:
+      verify_code:
+        type: string
+      verify_key:
+        type: string
+    required:
+    - verify_code
+    - verify_key
+    type: object
+  response.ResponseData:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+host: localhost:8000
+info:
+  contact:
+    email: duyphong02802@gmail.com
+    name: PhongND
+    url: github.com/phongnd2802/go-ecommerce-backend-api
+  description: This is documentation for API
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: github.com/phongnd2802/go-ecommerce-backend-api
+  title: Go Ecommerce Backend API
+  version: "1.0"
+paths:
+  /:
+    get:
+      consumes:
+      - application/json
+      description: Monitor Check
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Pong
+      tags:
+      - Health Check
+  /user/otp:
+    post:
+      consumes:
+      - application/json
+      description: When User Verify OTP then Update Status
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.VerifyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResponseData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseData'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseData'
+      summary: User Verify OTP
+      tags:
+      - Account Management
+  /user/register:
+    post:
+      consumes:
+      - application/json
+      description: When user is registered send otp to email
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResponseData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseData'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseData'
+      summary: User Registration
+      tags:
+      - Account Management
+swagger: "2.0"
