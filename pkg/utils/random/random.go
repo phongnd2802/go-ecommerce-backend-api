@@ -1,10 +1,10 @@
 package random
 
 import (
-	"time"
+	"encoding/hex"
 	"math/rand"
+	"time"
 )
-
 
 
 func GenerateSixDigit() int {
@@ -13,3 +13,12 @@ func GenerateSixDigit() int {
 	return otp
 }
 
+
+func RandomSalt(n int) (string, error) {
+	bytes := make([]byte, n)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}

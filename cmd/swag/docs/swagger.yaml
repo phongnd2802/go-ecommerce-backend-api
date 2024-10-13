@@ -14,11 +14,8 @@ definitions:
     properties:
       verify_key:
         type: string
-      verify_type:
-        type: string
     required:
     - verify_key
-    - verify_type
     type: object
   model.SetPasswordRequest:
     properties:
@@ -169,7 +166,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Set Password when user verified
+      description: Set Password when user registered
       parameters:
       - description: payload
         in: body
@@ -192,7 +189,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/response.ResponseData'
-      summary: User Set Password Verified
+      summary: User Set Password Registered
       tags:
       - Account Management
 swagger: "2.0"

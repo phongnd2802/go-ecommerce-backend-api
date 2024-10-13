@@ -184,7 +184,7 @@ const docTemplate = `{
         },
         "/user/set_password": {
             "post": {
-                "description": "Set Password when user verified",
+                "description": "Set Password when user registered",
                 "consumes": [
                     "application/json"
                 ],
@@ -194,7 +194,7 @@ const docTemplate = `{
                 "tags": [
                     "Account Management"
                 ],
-                "summary": "User Set Password Verified",
+                "summary": "User Set Password Registered",
                 "parameters": [
                     {
                         "description": "payload",
@@ -248,14 +248,10 @@ const docTemplate = `{
         "model.RegisterRequest": {
             "type": "object",
             "required": [
-                "verify_key",
-                "verify_type"
+                "verify_key"
             ],
             "properties": {
                 "verify_key": {
-                    "type": "string"
-                },
-                "verify_type": {
                     "type": "string"
                 }
             }

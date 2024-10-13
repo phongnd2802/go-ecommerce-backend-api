@@ -29,6 +29,6 @@ sqlc:
 swag:
 	swag init -g cmd/server/main.go -o cmd/swag/docs
 
-.PHONY: dev docker-up docker-down upse downse sqlc create-migration
+.PHONY: dev docker-up docker-down upse downse sqlc create-migration swag
 
 

@@ -14,12 +14,14 @@ import (
 	"github.com/phongnd2802/go-ecommerce-backend-api/internal/consts"
 	"github.com/phongnd2802/go-ecommerce-backend-api/internal/database"
 	"github.com/phongnd2802/go-ecommerce-backend-api/internal/model"
+	"github.com/phongnd2802/go-ecommerce-backend-api/pkg/jwt"
 	"github.com/phongnd2802/go-ecommerce-backend-api/pkg/response"
 	"github.com/phongnd2802/go-ecommerce-backend-api/pkg/utils"
 	"github.com/phongnd2802/go-ecommerce-backend-api/pkg/utils/crypto"
 	"github.com/phongnd2802/go-ecommerce-backend-api/pkg/utils/random"
 	"github.com/redis/go-redis/v9"
 	"github.com/segmentio/kafka-go"
+	"go.uber.org/zap"
 )
 
 type userAuthImpl struct{
@@ -44,7 +46,7 @@ func (ua *userAuthImpl) Register(in *model.RegisterRequest) (messageCode int, er
 	}
 
 	// 3. Check OTP
-	userKey := utils.GetUserKey(hashKey)
+	userKey := utils.GetUserKeyOTP(hashKey)
 	otpFound, err := global.Rdb.Get(context.Background(), userKey).Result()
 	
 	switch {
@@ -109,73 +111,119 @@ func (ua *userAuthImpl) Register(in *model.RegisterRequest) (messageCode int, er
 }
 
 
-func (ua *userAuthImpl) Login(in *model.LoginRequest) (messageCode int, out model.LoginResponse, err error) {
+func (ua *userAuthImpl) Login(in *model.LoginRequest) (int, *model.LoginResponse, error) {
 	// Check Email
 	userFound, err := ua.repo.GetUserBase(context.Background(), in.Email)
 	if err != nil {
-		return response.ErrCodeEmailNotVerifiedOrNotRegistered, out, err
+		return response.ErrCodeEmailNotVerifiedOrNotRegistered, nil, err
 	}
 
 	// Check Password
 	matched := crypto.CheckPasswordWithSalt(in.Password, userFound.UserSalt, userFound.UserPassword)
 	if !matched {
-		return response.ErrCodePasswordDoNotMatch, out, err
+		return response.ErrCodePasswordDoNotMatch, nil, err
 	}
 
 	// Generate AccessToken, RefreshToken
+	publicKeyStr, privateKey, err := crypto.GenerateRSAKeyPair(1024)
+	if err != nil {
+		return response.ErrCodeInternalServerError, nil, err
+	}
+
+	payload := map[string]interface{}{
+		"email": userFound.UserAccount,
+		"uid": userFound.UserID,
+	}
+	accessToken, err := jwt.GenerateToken(payload, privateKey, int64(consts.TIME_ACCESSS_TOKEN))
+	if err != nil {
+		return response.ErrCodeInternalServerError, nil, err
+	}
+
+	refreshToken, err := jwt.GenerateToken(payload, privateKey, consts.TIME_REFRESH_TOKEN)
+	if err != nil {
+		return response.ErrCodeInternalServerError, nil, err
+	}
+
+	// Save accessToken and PublicKey in Redis
+	hashEmail := crypto.GetHash(userFound.UserAccount)
+	userKeyToken := utils.GetUserKeyToken(hashEmail)
+	err = global.Rdb.SetEx(context.Background(), userKeyToken, accessToken, time.Duration(consts.TIME_ACCESSS_TOKEN) * time.Second).Err()
+	if err != nil {
+		return response.ErrCodeInternalServerError, nil, err
+	}
+
+	userKeySecret := utils.GetUserKeySecret(hashEmail)
+	err = global.Rdb.SetEx(context.Background(), userKeySecret, publicKeyStr, time.Duration(consts.TIME_ACCESSS_TOKEN) * time.Second).Err()
+	if err != nil {
+		return response.ErrCodeInternalServerError, nil, err
+	}
 
 
+	// Save refreshToken and publicKey in MySQL
+	fmt.Println("PublicKey:>>> ", publicKeyStr)
+	_, err = ua.repo.InsertUserToken(context.Background(), database.InsertUserTokenParams{
+		RefreshToken: refreshToken,
+		PublicKey: publicKeyStr,
+		UserID: userFound.UserID,
+	})
+	if err != nil {
+		return response.ErrCodeInternalServerError, nil, err
+	}
 
-
-	// Save info Login to MySQL
+	// Update state login MySQL
 	err = ua.repo.UpdateInfoLogin(context.Background(), database.UpdateInfoLoginParams{
 		UserID: userFound.UserID,
 		UserLoginIp: sql.NullString{String: "0.0.0.0", Valid: true},
 	})
 	if err != nil {
-		return response.ErrCodeInternalServerError, out, err
+		return response.ErrCodeInternalServerError, nil, err
 	}
 
+
 	// Response
-	out.UserId = int(userFound.UserID)
-	out.AccessToken = ""
-	out.RefreshToken = ""
+	out := &model.LoginResponse{
+		UserId: int(userFound.UserID),
+		AccessToken: accessToken,
+		RefreshToken: refreshToken,
+	}
 	return response.CodeSuccess, out, nil
 }
 
 
-func (ua *userAuthImpl) VerifyOTP(in *model.VerifyRequest) (messageCode int, out model.VerifyOTPResponse, err error) {
+func (ua *userAuthImpl) VerifyOTP(in *model.VerifyRequest) (int, *model.VerifyOTPResponse, error) {
 	hashKey := crypto.GetHash(in.VerifyKey)
 
 	// get otp
-	otpFound, err := global.Rdb.Get(context.Background(), utils.GetUserKey(hashKey)).Result()
+	otpFound, err := global.Rdb.Get(context.Background(), utils.GetUserKeyOTP(hashKey)).Result()
 	if err != nil {
-		return response.ErrCodeInvalidOTP, out, err
+		return response.ErrCodeInvalidOTP, nil, err
 	}
 
 	if in.VerifyCode != otpFound {
-		return response.ErrCodeInvalidOTP, out, fmt.Errorf("OTP not match")
+		return response.ErrCodeInvalidOTP, nil, fmt.Errorf("OTP not match")
 	}
 
 	infoOtp, err := ua.repo.GetInfoOTP(context.Background(), hashKey)
 	if err != nil {
-		return response.ErrCodeInvalidOTP, out, err
+		return response.ErrCodeInvalidOTP, nil, err
 	}
 
 	// Update status verified
 	err = ua.repo.UpdateUserVerificationStatus(context.Background(), hashKey)
 	if err != nil {
-		return response.ErrCodeUpdateVerifiedStatus, out, err
+		return response.ErrCodeUpdateVerifiedStatus, nil, err
 	}
 
 	// Response
-	out.Token = infoOtp.VerifyKeyHash
-	out.UserId = int(infoOtp.VerifyID)
+	out := &model.VerifyOTPResponse{
+		Token: infoOtp.VerifyKeyHash,
+		UserId: int(infoOtp.VerifyID),
+	}
 	
 	return response.CodeSuccess, out, nil
 }
 
-func (ua *userAuthImpl) UpdatePasswordVerified(in *model.SetPasswordRequest) (messageCode int, err error) {
+func (ua *userAuthImpl) UpdatePasswordRegister(in *model.SetPasswordRequest) (messageCode int, err error) {
 	// Check Verified
 	infoVerify, err := ua.repo.GetValidVerified(context.Background(), in.VerifyKeyHash)
 	if err != nil {
@@ -183,7 +231,7 @@ func (ua *userAuthImpl) UpdatePasswordVerified(in *model.SetPasswordRequest) (me
 	}
 
 	// Random Salt
-	ranSalt, err := crypto.RandomSalt(16)
+	ranSalt, err := random.RandomSalt(16)
 	if err != nil {
 		return response.ErrCodeInternalServerError, err
 	}
@@ -194,8 +242,8 @@ func (ua *userAuthImpl) UpdatePasswordVerified(in *model.SetPasswordRequest) (me
 		return response.ErrCodeInternalServerError, err
 	}
 
-	// Insert Info Account To MySQL
-	result, err := ua.repo.InsertUserBase(context.Background(), database.InsertUserBaseParams{
+	// Insert Info Account To User Base MySQL
+	resultBase, err := ua.repo.InsertUserBase(context.Background(), database.InsertUserBaseParams{
 		UserAccount: infoVerify.VerifyKey,
 		UserPassword: hashedPassword,
 		UserSalt: ranSalt,
@@ -203,22 +251,40 @@ func (ua *userAuthImpl) UpdatePasswordVerified(in *model.SetPasswordRequest) (me
 	if err != nil {
 		return response.ErrCodeInternalServerError, err
 	}
-	lastIdUser, err := result.LastInsertId()
+	lastIdUserBase, err := resultBase.LastInsertId()
 	if err != nil {
 		return response.ErrCodeInternalServerError, err
 	}
 
-	log.Println("LastIdUserBase:>>", lastIdUser)
-
+	// Insert Info Account To User Profile MySQL
+	result, err := ua.repo.InsertUserProfileRegister(context.Background(), database.InsertUserProfileRegisterParams{
+		UserID: int32(lastIdUserBase),
+		UserEmail: infoVerify.VerifyKey,
+	})
+	if err != nil {
+		return response.ErrCodeInternalServerError, err
+	}
+	
+	lastIdUser, err := result.LastInsertId()
+	if err != nil {
+		return response.ErrCodeInternalServerError, err
+	}
+	global.Logger.Info("User Register Full", zap.Int("user_id", int(lastIdUser)))
 	return response.CodeSuccess, nil
 }
 
+func (ua *userAuthImpl) ForgotPassword(in *model.ForgotPasswordRequest) (int, error) {
+	return response.CodeSuccess, nil
+}
+
+
+func (ua *userAuthImpl) Logout() (int, error) {
+	return response.CodeSuccess, nil
+}
 
 func NewUserAuthImpl(repo *database.Queries) *userAuthImpl {
 	return &userAuthImpl{
 		repo: repo,
 	}
 }
-
-
 

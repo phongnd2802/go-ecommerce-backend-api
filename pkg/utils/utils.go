@@ -12,8 +12,16 @@ import (
 var validate = validator.New()
 
 
-func GetUserKey(key string) string {
+func GetUserKeyOTP(key string) string {
 	return fmt.Sprintf("u:%s:otp", key)
+}
+
+func GetUserKeyToken(key string) string {
+	return fmt.Sprintf("u:%s:token", key)
+}
+
+func GetUserKeySecret(key string) string {
+	return fmt.Sprintf("u:%s:key", key)
 }
 
 

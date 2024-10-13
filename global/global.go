@@ -2,7 +2,6 @@ package global
 
 import (
 	"database/sql"
-
 	"github.com/minio/minio-go/v7"
 	"github.com/phongnd2802/go-ecommerce-backend-api/pkg/logger"
 	"github.com/phongnd2802/go-ecommerce-backend-api/pkg/setting"

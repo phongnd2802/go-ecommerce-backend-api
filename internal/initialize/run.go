@@ -22,6 +22,9 @@ func Run() *mux.Router {
 	// Init Mysql databasae
 	InitMysql()
 
+	// Init Seed Data
+	InitSeedData()
+
 	// Init Service Interface
 	InitServiceInterface()
 
@@ -36,9 +39,6 @@ func Run() *mux.Router {
 
 	// Init Router
 	r := InitRouter()
-
-	// log.Println("Server started on port 8000")
-	// log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", global.Config.Server.Port), r))
 
 	return r
 }

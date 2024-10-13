@@ -1,6 +1,7 @@
 server:
   host: 127.0.0.1
   port: 8000
+  mode: dev
 
 mysql:
   host: 127.0.0.1
@@ -25,3 +26,5 @@ logger:
   max_backups: 3
   max_age: 30
   compress: true
+
+

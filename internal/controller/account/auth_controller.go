@@ -2,7 +2,6 @@ package account
 
 import (
 	"net/http"
-
 	"github.com/phongnd2802/go-ecommerce-backend-api/global"
 	"github.com/phongnd2802/go-ecommerce-backend-api/internal/model"
 	"github.com/phongnd2802/go-ecommerce-backend-api/internal/service"
@@ -73,8 +72,8 @@ func (c *cUserAuth) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 
 
 // User Set Passaword Verified documentation
-// @Summary      User Set Password Verified
-// @Description  Set Password when user verified
+// @Summary      User Set Password Registered
+// @Description  Set Password when user registered
 // @Tags         Account Management
 // @Accept       json
 // @Produce      json
@@ -83,14 +82,14 @@ func (c *cUserAuth) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 // @Failure		 400	{object}	response.ResponseData
 // @Failure 	 500	{object}	response.ResponseData
 // @Router       /user/set_password [post]
-func (c *cUserAuth) UpdatePasswordVerified(w http.ResponseWriter, r *http.Request) {
+func (c *cUserAuth) UpdatePasswordRegister(w http.ResponseWriter, r *http.Request) {
 	var params model.SetPasswordRequest
 	if err := utils.ParseJSON(r, &params); err != nil {
 		response.ErrorResponse(w, response.ErrCodeParamInvalid, err.Error())
 		return
 	}
 
-	codeStatus, err := service.UserAuth().UpdatePasswordVerified(&params)
+	codeStatus, err := service.UserAuth().UpdatePasswordRegister(&params)
 	if err != nil {
 		global.Logger.Error("Error Set Password", zap.Error(err))
 		response.ErrorResponse(w, codeStatus, err.Error())
@@ -124,3 +123,32 @@ func (c *cUserAuth) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	response.SuccessResponse(w, codeStatus, data)
 }
+
+
+func (c *cUserAuth) Logout(w http.ResponseWriter, r *http.Request) {
+	codeStatus, err := service.UserAuth().Logout()
+	if err != nil {
+		global.Logger.Error("Error Logout", zap.Error(err))
+		response.ErrorResponse(w, codeStatus, err.Error())
+		return
+	}
+	response.SuccessResponse(w, codeStatus, nil)
+}
+
+func (c *cUserAuth) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var params model.ForgotPasswordRequest
+	if err := utils.ParseJSON(r, &params); err != nil {
+		response.ErrorResponse(w, response.ErrCodeParamInvalid, err.Error())
+		return
+	}
+
+	codeStatus, err := service.UserAuth().ForgotPassword(&params)
+	if err != nil {
+		global.Logger.Error("Error Forgot Password", zap.Error(err))
+		response.ErrorResponse(w, codeStatus, err.Error())
+		return
+	}
+	response.SuccessResponse(w, codeStatus, nil)
+}
+
+

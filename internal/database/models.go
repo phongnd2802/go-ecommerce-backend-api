@@ -8,6 +8,15 @@ import (
 	"database/sql"
 )
 
+type Role struct {
+	RoleID          int32
+	RoleName        string
+	RoleSlug        string
+	RoleDescription sql.NullString
+	RoleCreatedAt   sql.NullTime
+	RoleUpdatedAt   sql.NullTime
+}
+
 type UserBase struct {
 	UserID         int32
 	UserAccount    string
@@ -18,6 +27,35 @@ type UserBase struct {
 	UserLoginIp    sql.NullString
 	UserCreatedAt  sql.NullTime
 	UserUpdatedAt  sql.NullTime
+}
+
+type UserProfile struct {
+	UserID       int32
+	UserEmail    string
+	UserNickname sql.NullString
+	UserAvatar   sql.NullString
+	UserState    uint8
+	UserMobile   sql.NullString
+	UserGender   sql.NullInt16
+	UserBirthday sql.NullTime
+	CreteadAt    sql.NullTime
+	UpdatedAt    sql.NullTime
+}
+
+type UserRole struct {
+	UserID     int32
+	RoleID     int32
+	AssignedAt sql.NullTime
+}
+
+type UserToken struct {
+	TokenID          int32
+	RefreshToken     string
+	RefreshTokenUsed sql.NullString
+	PublicKey        string
+	UserID           int32
+	TokenCreatedAt   sql.NullTime
+	TokenUpdatedAt   sql.NullTime
 }
 
 type UserVerify struct {

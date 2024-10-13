@@ -10,6 +10,7 @@ type Config struct {
 type ServerSetitng struct {
 	Host string `mapstructure:"host"`
 	Port int    `mapstructure:"port"`
+	Mode string `mapstructure:"mode"`
 }
 
 type MySQLSetting struct {

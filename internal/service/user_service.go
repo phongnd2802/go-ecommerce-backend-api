@@ -5,9 +5,12 @@ import "github.com/phongnd2802/go-ecommerce-backend-api/internal/model"
 type (
 	IUserAuth interface {
 		Register(in *model.RegisterRequest) (messageCode int, err error)
-		Login(in *model.LoginRequest) (messageCode int, out model.LoginResponse, err error)
-		VerifyOTP(in *model.VerifyRequest) (messageCode int, out model.VerifyOTPResponse, err error)
-		UpdatePasswordVerified(in *model.SetPasswordRequest) (messageCode int, err error)
+		Login(in *model.LoginRequest) (messageCode int, out *model.LoginResponse, err error)
+		VerifyOTP(in *model.VerifyRequest) (messageCode int, out *model.VerifyOTPResponse, err error)
+		UpdatePasswordRegister(in *model.SetPasswordRequest) (messageCode int, err error)
+		ForgotPassword(in *model.ForgotPasswordRequest) (messageCode int, err error)
+
+		Logout() (messageCode int, err error)
 	}
 
 	IUserInfo interface {
